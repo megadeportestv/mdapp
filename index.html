@@ -1,0 +1,192 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <base href="/icons/">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+  <style>
+    body {
+      background-color: rgb(24,24,24);
+      font-family: Arial, sans-serif;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px;
+      background-color: rgb(34, 34, 34);
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      font-size: 36px;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .search-input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 16px;
+      margin-bottom: 20px;
+    }
+    .icon-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-gap: 20px;
+    }
+    .icon-file {
+      position: relative;
+      cursor: pointer;
+    }
+    .icon-file img {
+      width: 100%;
+      height: auto;
+      border-radius: 4px;
+    }
+    .icon-size {
+      position: absolute;
+      bottom: 5px;
+      right: 5px;
+      padding: 2px 4px;
+      background-color: rgba(0, 0, 0, 0.6);
+      color: #fff;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .icon-file:hover .icon-size {
+      background-color: rgba(255, 255, 255, 0.6);
+      color: #111827;
+    }
+    .title {
+      color: rgb(255, 255, 255)
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 class="title">Icon Search</h1>
+
+    <div id="passwordPrompt">
+      <label for="password">Enter Password:</label>
+      <input type="password" id="password" placeholder="Password">
+      <button id="submitPassword">Submit</button>
+    </div>
+
+    <input type="text" id="searchInput" class="search-input" placeholder="Search For Icon">
+    <div id="iconGrid" class="icon-grid"></div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    $(document).ready(function() {
+      var iconGrid = $('#iconGrid');
+      var passwordPrompt = $('#passwordPrompt');
+      var submitPassword = $('#submitPassword');
+
+      var correctPassword = "axelodev";
+
+      iconGrid.hide();
+      passwordPrompt.show();
+
+      function toggleIconGrid() {
+        var enteredPassword = $('#password').val();
+
+        if (enteredPassword === correctPassword) {
+          passwordPrompt.hide();
+          iconGrid.show();
+        } else {
+          alert("Incorrect password. Please try again.");
+        }
+      }
+
+      submitPassword.click(function() {
+        toggleIconGrid();
+      });
+
+      $('#password').keypress(function(event) {
+        if (event.which === 13) {
+          toggleIconGrid();
+        }
+      });
+
+      $.ajax({
+        url: '/icons.json',
+        dataType: 'json',
+        success: function(icons) {
+          generateIconGrid(icons);
+        }
+      });
+
+      function generateIconGrid(icons) {
+        var searchTerm = '';
+        var filteredIcons = [];
+
+        function filterIcons(searchTerm) {
+          if (searchTerm !== '') {
+            filteredIcons = icons.filter(function(icon) {
+              return icon.name.toLowerCase().includes(searchTerm);
+            });
+          } else {
+            filteredIcons = icons;
+          }
+        }
+
+        function renderIconGrid() {
+          iconGrid.empty();
+          filteredIcons.forEach(function(icon) {
+            var fileElement = $('<div></div>')
+              .addClass('icon-file')
+              .click(function() {
+                copyToClipboard(icon.rbxAssetId);
+                showNotification('Copied to clipboard');
+              });
+
+            var imagePath = decodeURIComponent(icon.path.replace(/%20/g, ' '));
+            var imageNewName = icon.name.replace(/%20/g, ' ');
+
+            var imageElement = $('<img>').attr('src', imagePath);
+            fileElement.append(imageElement);
+
+            fileElement.data('rbxassetid', icon.rbxAssetId);
+
+            var iconSize = getIconSize(imageNewName);
+            if (iconSize !== '') {
+              var iconSizeElement = $('<div></div>')
+                .addClass('icon-size')
+                .text(iconSize);
+              fileElement.append(iconSizeElement);
+            }
+
+            iconGrid.append(fileElement);
+          });
+        }
+
+        function copyToClipboard(text) {
+          var tempElement = $('<input>').val(text).appendTo('body').select();
+          document.execCommand('copy');
+          tempElement.remove();
+        }
+
+        function getIconSize(iconName) {
+          var sizeMatch = iconName.match(/\b\d{2,3}\b/);
+          return sizeMatch ? sizeMatch[0] : '';
+        }
+
+        function showNotification(message) {
+          alert(message);
+        }
+
+        $('#searchInput').on('input', function() {
+          searchTerm = $(this).val().toLowerCase();
+          filterIcons(searchTerm);
+          renderIconGrid();
+        });
+
+        filterIcons(searchTerm);
+        renderIconGrid();
+      }
+    });
+  </script>
+</body>
+</html>
